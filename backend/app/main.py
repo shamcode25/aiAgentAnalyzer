@@ -82,4 +82,9 @@ def analyze(body: AnalyzeRequest) -> FullAnalysisResponse:
         debug=body.debug,
     )
 
+# Keep root /health for Render health checks
+@app.get("/health")
+def root_health() -> dict[str, str]:
+    return {"status": "ok"}
+
 app.include_router(api_router)
