@@ -2,7 +2,7 @@
 import os
 import tempfile
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, APIRouter
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 
@@ -11,23 +11,22 @@ from app.schemas import AnalyzeRequest, FullAnalysisResponse
 from app.services.pipeline import run_pipeline
 
 app = FastAPI(title="Care Navigator Agent", version="0.1.0")
-api_router = APIRouter(prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@api_router.get("/health")
+@app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@api_router.post("/transcribe")
+@app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)) -> dict[str, str]:
     """Transcribe audio file using OpenAI Whisper API."""
     if not OPENAI_API_KEY:
@@ -71,7 +70,7 @@ async def transcribe_audio(file: UploadFile = File(...)) -> dict[str, str]:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 
-@api_router.post("/analyze", response_model=FullAnalysisResponse)
+@app.post("/analyze", response_model=FullAnalysisResponse)
 def analyze(body: AnalyzeRequest) -> FullAnalysisResponse:
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not configured")
@@ -82,9 +81,3 @@ def analyze(body: AnalyzeRequest) -> FullAnalysisResponse:
         debug=body.debug,
     )
 
-# Keep root /health for Render health checks
-@app.get("/health")
-def root_health() -> dict[str, str]:
-    return {"status": "ok"}
-
-app.include_router(api_router)
